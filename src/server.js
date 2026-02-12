@@ -28,9 +28,12 @@ const port = process.env.PORT || 3333;
 let server;
 
 (async () => {
-    await whatsappInit();
+    // 1. Sobe o HTTP primeiro (Railway precisa do /healthz respondendo)
     require("./queue/worker");
     server = app.listen(port, () => logger.info(`API rodando na porta ${port}`));
+
+    // 2. Inicia WhatsApp em background (não bloqueia o healthcheck)
+    whatsappInit().catch(err => logger.error({ err }, "Falha ao iniciar WhatsApp"));
 })();
 
 // ── Graceful shutdown — fecha tudo limpo antes de parar ──
