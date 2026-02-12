@@ -45,6 +45,13 @@ app.use(apiLimiter);
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
+/* ─── STATIC FILES ─── */
+const path = require("path");
+app.use(express.static(path.join(__dirname, "public"), {
+    maxAge: "7d",
+    etag: true,
+}));
+
 app.use(routes);
 
 app.use((err, req, res, _next) => {
