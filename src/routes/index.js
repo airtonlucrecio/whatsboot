@@ -195,6 +195,10 @@ router.post("/send/location", auth, async (req, res) => {
 });
 
 // Health check
+router.get("/healthz", (_req, res) => {
+    res.status(200).json({ ok: true });
+});
+
 router.get("/health", (req, res) => {
     const status = getStatus();
     res.status(status.ready ? 200 : 503).json({
