@@ -1,0 +1,10 @@
+node_modules
+auth
+.env
+.env.*
+*.log
+.git
+.gitignore
+README.md
+schema.sql
+_check.js
