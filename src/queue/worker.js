@@ -13,7 +13,6 @@ const worker = new Worker(
         const maxAttempts = job.opts.attempts || 5;
 
         try {
-            // tenta enviar
             await sendText(to, text);
 
             await sql`
@@ -41,7 +40,7 @@ const worker = new Worker(
                 where id = ${logId}
             `;
 
-            throw err; // importante: BullMQ precisa disso pra retry/backoff
+            throw err; 
         }
     },
     {
@@ -65,7 +64,6 @@ worker.on("completed", (job) => {
 
 worker.on("failed", (job, err) => {
     logger.error({ jobId: job?.id, error: err?.message }, "Job failed");
-    // só dispara webhook quando acabaram todas as tentativas
     if (job && job.attemptsMade >= (job.opts.attempts || 5)) {
         dispatchWebhook("message.failed", {
             logId: job.data.logId,

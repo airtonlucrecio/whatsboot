@@ -6,7 +6,7 @@ const sql = postgres(process.env.DATABASE_URL, {
     idle_timeout: 30,
     connect_timeout: 5,
     ssl: "require",
-    onnotice: () => {},       // silencia notices do PG
+    onnotice: () => {}, 
 });
 
 logger.debug("Postgres.js configurado");

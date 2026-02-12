@@ -3,6 +3,7 @@ const { sql } = require("../db/pg");
 
 const express = require("express");
 const router = express.Router();
+const logger = require("../utils/logger");
 
 const {
     getStatus,
@@ -18,12 +19,14 @@ const {
 
 const crypto = require("crypto");
 
+/* ─── AUTH MIDDLEWARE ─── */
 function auth(req, res, next) {
     const key = req.headers["x-api-key"] || req.query.api_key || "";
     const expected = process.env.API_KEY || "";
 
     if (!key || !expected || key.length !== expected.length ||
         !crypto.timingSafeEqual(Buffer.from(key), Buffer.from(expected))) {
+        logger.warn({ ip: req.ip, path: req.path }, "Tentativa de acesso não autorizado");
         return res.status(401).json({ error: "unauthorized" });
     }
     next();
@@ -182,13 +185,11 @@ router.post("/send/location", auth, async (req, res) => {
     }
 });
 
-// Dashboard
 const path = require("path");
 router.get("/dashboard", auth, (_req, res) => {
     res.sendFile(path.join(__dirname, "../public/dashboard.html"));
 });
 
-// Health check
 router.get("/healthz", (_req, res) => {
     res.status(200).json({ ok: true });
 });

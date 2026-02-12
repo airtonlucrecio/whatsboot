@@ -7,7 +7,7 @@ const connection = redisUrl
     ? new IORedis(redisUrl, {
         maxRetriesPerRequest: null,
         retryStrategy(times) {
-            const delay = Math.min(times * 500, 10000); // tenta reconectar com backoff até 10s
+            const delay = Math.min(times * 500, 10000);
             logger.warn(`Redis reconectando em ${delay}ms (tentativa ${times})`);
             return delay;
         },
@@ -18,7 +18,7 @@ const connection = redisUrl
         password: process.env.REDIS_PASSWORD || undefined,
         maxRetriesPerRequest: null,
         retryStrategy(times) {
-            const delay = Math.min(times * 500, 10000); // tenta reconectar com backoff até 10s
+            const delay = Math.min(times * 500, 10000);
             logger.warn(`Redis reconectando em ${delay}ms (tentativa ${times})`);
             return delay;
         },

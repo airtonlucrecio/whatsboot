@@ -2,255 +2,778 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Gateway</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#7c3aed" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#212121" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>nottu · WhatsApp Gateway</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0a0a0a;
-            color: #e0e0e0;
-            min-height: 100vh;
+        /* ─── NOTTU DESIGN SYSTEM ─── */
+        :root {
+            --primary: #7c3aed;
+            --primary-hover: #6d28d9;
+            --primary-light: rgba(124, 58, 237, 0.12);
+            --primary-glow: 0 0 20px rgba(124, 58, 237, 0.5), 0 0 40px rgba(124, 58, 237, 0.3);
+
+            --bg: #212121;
+            --bg-card: #292929;
+            --bg-elevated: #333333;
+            --bg-input: #2f2f2f;
+
+            --text-primary: #fafafa;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666666;
+
+            --success: #22c55e;
+            --success-bg: rgba(34, 197, 94, 0.12);
+            --error: #ef4444;
+            --error-bg: rgba(239, 68, 68, 0.12);
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.12);
+            --info: #3b82f6;
+            --info-bg: rgba(59, 130, 246, 0.12);
+
+            --border: #3a3a3a;
+            --border-subtle: #2e2e2e;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --radius-xs: 6px;
+            --radius-full: 9999px;
+
+            --shadow-card: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.15);
+            --shadow-hover: 0 4px 12px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
+            --transition: all 0.2s ease;
+
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
+
+        /* ─── RESET ─── */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ─── HEADER ─── */
         .header {
-            background: #111;
-            border-bottom: 1px solid #222;
-            padding: 16px 24px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--primary-glow);
+            transition: var(--transition);
+        }
+        .logo-icon svg { width: 20px; height: 20px; fill: #fff; }
+        .logo-text {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+        }
+        .logo-text span { color: var(--primary); }
+        .logo-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-left: 2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-dot.online { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        .status-dot.offline { background: var(--error); box-shadow: 0 0 8px var(--error); }
+        .status-dot.waiting { background: var(--warning); box-shadow: 0 0 8px var(--warning); animation: pulse-dot 1.5s ease infinite; }
+
+        .status-badge {
+            padding: 5px 14px;
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+        .status-connected { background: var(--success-bg); color: var(--success); border: 1px solid rgba(34, 197, 94, 0.2); }
+        .status-disconnected { background: var(--error-bg); color: var(--error); border: 1px solid rgba(239, 68, 68, 0.2); }
+        .status-loading { background: var(--warning-bg); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+
+        .refresh-indicator {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .refresh-indicator svg { width: 14px; height: 14px; opacity: 0.5; }
+        .refresh-indicator.refreshing svg { animation: spin 0.8s linear infinite; }
+
+        /* ─── LAYOUT ─── */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* ─── KPI STRIP ─── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow-card);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+        .kpi-card.kpi-primary::before { background: var(--primary); }
+        .kpi-card.kpi-success::before { background: var(--success); }
+        .kpi-card.kpi-warning::before { background: var(--warning); }
+        .kpi-card.kpi-info::before { background: var(--info); }
+        .kpi-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+
+        .kpi-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .kpi-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .kpi-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .kpi-icon svg { width: 16px; height: 16px; }
+        .kpi-icon.purple { background: var(--primary-light); color: var(--primary); }
+        .kpi-icon.purple svg { fill: var(--primary); }
+        .kpi-icon.green { background: var(--success-bg); color: var(--success); }
+        .kpi-icon.green svg { fill: var(--success); }
+        .kpi-icon.orange { background: var(--warning-bg); color: var(--warning); }
+        .kpi-icon.orange svg { fill: var(--warning); }
+        .kpi-icon.blue { background: var(--info-bg); color: var(--info); }
+        .kpi-icon.blue svg { fill: var(--info); }
+
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+        .kpi-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* ─── MAIN GRID ─── */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        /* ─── CARDS ─── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        .card-header {
+            padding: 20px 24px 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
-        .header h1 {
-            font-size: 18px;
-            color: #25D366;
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        .status-badge {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .status-connected { background: #25D36622; color: #25D366; }
-        .status-disconnected { background: #ff444422; color: #ff4444; }
-        .status-loading { background: #ffaa0022; color: #ffaa00; }
+        .card-title svg { width: 16px; height: 16px; opacity: 0.6; }
+        .card-body { padding: 20px 24px 24px; }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 24px;
-            display: grid;
-            grid-template-columns: 340px 1fr;
-            gap: 24px;
+        /* ─── QR SECTION ─── */
+        .qr-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
         }
-
-        .card {
-            background: #141414;
-            border: 1px solid #222;
-            border-radius: 12px;
-            padding: 20px;
-        }
-        .card h2 {
-            font-size: 14px;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 16px;
-        }
-
-        /* QR Section */
-        .qr-section { text-align: center; }
-        .qr-section img {
+        .qr-frame {
             width: 280px;
             height: 280px;
-            border-radius: 8px;
-            background: #fff;
-            padding: 8px;
-        }
-        .qr-placeholder {
-            width: 280px;
-            height: 280px;
-            border-radius: 8px;
-            background: #1a1a1a;
+            border-radius: var(--radius);
+            overflow: hidden;
+            position: relative;
+            background: var(--bg-elevated);
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto;
-            color: #555;
-            font-size: 14px;
-            border: 2px dashed #333;
         }
-        .connected-msg {
-            color: #25D366;
-            font-size: 48px;
+        .qr-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #fff;
+            padding: 12px;
+            border-radius: var(--radius-sm);
+        }
+        .qr-frame.has-glow {
+            box-shadow: var(--primary-glow);
+            border: 2px solid var(--primary);
+        }
+        .qr-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 12px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        .qr-placeholder svg { width: 40px; height: 40px; opacity: 0.3; }
+        .connected-check {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 12px;
         }
-        .connected-msg span { font-size: 14px; }
+        .connected-check .check-circle {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: var(--success-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+        }
+        .connected-check .check-circle svg { width: 32px; height: 32px; fill: var(--success); }
+        .connected-check span { font-size: 14px; font-weight: 600; color: var(--success); }
 
-        /* Info */
-        .info-grid {
+        .conn-info {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 16px;
+            gap: 10px;
+            width: 100%;
         }
-        .info-item {
-            background: #1a1a1a;
+        .conn-info-item {
+            background: var(--bg-elevated);
+            border-radius: var(--radius-sm);
             padding: 12px;
-            border-radius: 8px;
+            text-align: center;
         }
-        .info-item label {
-            font-size: 11px;
-            color: #666;
+        .conn-info-item .label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        .info-item .value {
-            font-size: 18px;
+        .conn-info-item .val {
+            font-size: 16px;
             font-weight: 700;
             margin-top: 4px;
         }
+        .refresh-tag {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
 
-        /* Logs */
-        .logs-section { grid-column: 1 / -1; }
+        /* ─── MESSAGES LIST ─── */
+        .messages-scroll {
+            max-height: 420px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        .messages-scroll::-webkit-scrollbar { width: 4px; }
+        .messages-scroll::-webkit-scrollbar-track { background: transparent; }
+        .messages-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        .msg-item {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-subtle);
+            transition: var(--transition);
+        }
+        .msg-item:last-child { border-bottom: none; }
+        .msg-item:hover { background: rgba(124, 58, 237, 0.04); margin: 0 -24px; padding: 12px 24px; }
+        .msg-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .msg-sender {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .msg-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+        .msg-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        /* ─── LOGS SECTION ─── */
+        .logs-card {
+            grid-column: 1 / -1;
+        }
         .logs-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
         }
-        .logs-header h2 { margin-bottom: 0; }
-        .logs-filters {
+        .filters {
             display: flex;
-            gap: 8px;
+            gap: 6px;
+            flex-wrap: wrap;
         }
         .filter-btn {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            color: #aaa;
-            padding: 6px 12px;
-            border-radius: 6px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 6px 14px;
+            border-radius: var(--radius-full);
             cursor: pointer;
             font-size: 12px;
+            font-weight: 500;
+            font-family: var(--font);
+            transition: var(--transition);
+            -webkit-tap-highlight-color: transparent;
         }
+        .filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .filter-btn:active { transform: scale(0.95); }
         .filter-btn.active {
-            background: #25D36622;
-            border-color: #25D366;
-            color: #25D366;
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--primary);
+            font-weight: 600;
         }
+
+        .table-wrap {
+            overflow-x: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        .table-wrap::-webkit-scrollbar { height: 4px; }
+        .table-wrap::-webkit-scrollbar-track { background: transparent; }
+        .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
         .logs-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 13px;
+            white-space: nowrap;
         }
         .logs-table th {
             text-align: left;
-            padding: 10px 12px;
-            background: #1a1a1a;
-            color: #666;
+            padding: 12px 16px;
+            background: var(--bg-elevated);
+            color: var(--text-muted);
             font-weight: 600;
             text-transform: uppercase;
             font-size: 11px;
             letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
         }
+        .logs-table th:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+        .logs-table th:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
         .logs-table td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #1a1a1a;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
         }
-        .logs-table tr:hover { background: #1a1a1a55; }
+        .logs-table tr:hover td { background: rgba(124, 58, 237, 0.04); }
+        .logs-table .msg-cell {
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .badge {
-            padding: 2px 8px;
-            border-radius: 4px;
+            padding: 3px 10px;
+            border-radius: var(--radius-full);
             font-size: 11px;
             font-weight: 600;
+            letter-spacing: 0.3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
-        .badge-sent { background: #25D36622; color: #25D366; }
-        .badge-queued { background: #3b82f622; color: #3b82f6; }
-        .badge-failed { background: #ff444422; color: #ff4444; }
-        .badge-retrying { background: #ffaa0022; color: #ffaa00; }
+        .badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        .badge-sent { background: var(--success-bg); color: var(--success); }
+        .badge-sent::before { background: var(--success); }
+        .badge-queued { background: var(--info-bg); color: var(--info); }
+        .badge-queued::before { background: var(--info); }
+        .badge-failed { background: var(--error-bg); color: var(--error); }
+        .badge-failed::before { background: var(--error); }
+        .badge-retrying { background: var(--warning-bg); color: var(--warning); }
+        .badge-retrying::before { background: var(--warning); }
 
+        /* ─── EMPTY STATE ─── */
         .empty-state {
             text-align: center;
-            padding: 40px;
-            color: #444;
+            padding: 48px 24px;
+            color: var(--text-muted);
         }
+        .empty-state svg { width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.3; }
+        .empty-state h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        .empty-state p { font-size: 13px; }
 
-        .refresh-info {
-            font-size: 11px;
-            color: #444;
+        /* ─── SKELETON ─── */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-elevated) 25%, #3a3a3a 50%, var(--bg-elevated) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s ease infinite;
+            border-radius: var(--radius-xs);
+        }
+        .skeleton-line { height: 14px; margin-bottom: 8px; }
+        .skeleton-line:last-child { width: 60%; }
+        .skeleton-circle { border-radius: 50%; }
+
+        /* ─── FOOTER ─── */
+        .footer {
             text-align: center;
+            padding: 24px;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-subtle);
             margin-top: 8px;
         }
+        .footer a { color: var(--primary); text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
 
+        /* ─── ANIMATIONS ─── */
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fadeIn 0.3s ease forwards; }
+
+        /* ─── RESPONSIVE ─── */
         @media (max-width: 768px) {
-            .container {
-                grid-template-columns: 1fr;
-            }
+            .header { padding: 0 16px; height: 56px; }
+            .logo-text { font-size: 17px; }
+            .logo-sub { display: none; }
+            .container { padding: 16px; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+            .kpi-value { font-size: 22px; }
+            .kpi-card { padding: 16px; }
+            .main-grid { grid-template-columns: 1fr; gap: 16px; margin-bottom: 16px; }
+            .qr-frame { width: 240px; height: 240px; }
+            .card-body { padding: 16px; }
+            .card-header { padding: 16px 16px 0; }
+            .logs-header { flex-direction: column; align-items: flex-start; }
+            .msg-item:hover { margin: 0 -16px; padding: 12px 16px; }
+            .refresh-indicator span { display: none; }
+        }
+        @media (max-width: 480px) {
+            .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .kpi-icon { display: none; }
+            .kpi-card { padding: 12px; }
+            .kpi-value { font-size: 20px; }
+            .qr-frame { width: 200px; height: 200px; }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>&#x1F4F1; WhatsApp Gateway</h1>
-        <div id="statusBadge" class="status-badge status-loading">Carregando...</div>
-    </div>
+    <!-- ─── HEADER ─── -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.75.75 0 0 0 .917.918l4.462-1.494A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.94 9.94 0 0 1-5.39-1.583l-.376-.229-3.898 1.022 1.045-3.817-.252-.399A9.94 9.94 0 0 1 2 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
+                </div>
+                <div>
+                    <div class="logo-text"><span>nottu</span> gateway</div>
+                    <div class="logo-sub">WhatsApp API</div>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="refresh-indicator" id="refreshIndicator">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+                <span id="lastRefresh">--</span>
+            </div>
+            <div id="statusBadge" class="status-badge status-loading">
+                <span class="status-dot waiting"></span>
+                Carregando
+            </div>
+        </div>
+    </header>
 
     <div class="container">
-        <!-- QR / Conexão -->
-        <div class="card qr-section">
-            <h2>Conexão</h2>
-            <div id="qrArea">
-                <div class="qr-placeholder">Carregando...</div>
-            </div>
-            <div class="info-grid">
-                <div class="info-item">
-                    <label>Status</label>
-                    <div class="value" id="connStatus">--</div>
+        <!-- ─── KPI CARDS ─── -->
+        <div class="kpi-grid">
+            <div class="kpi-card kpi-primary">
+                <div class="kpi-header">
+                    <span class="kpi-label">Conexão</span>
+                    <div class="kpi-icon purple">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                    </div>
                 </div>
-                <div class="info-item">
-                    <label>QR</label>
-                    <div class="value" id="qrStatus">--</div>
-                </div>
+                <div class="kpi-value" id="kpiStatus">--</div>
+                <div class="kpi-desc" id="kpiStatusDesc">Verificando...</div>
             </div>
-            <div class="refresh-info">Atualiza a cada 5 segundos</div>
+            <div class="kpi-card kpi-success">
+                <div class="kpi-header">
+                    <span class="kpi-label">Enviadas</span>
+                    <div class="kpi-icon green">
+                        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+                    </div>
+                </div>
+                <div class="kpi-value" id="kpiSent">0</div>
+                <div class="kpi-desc">Mensagens enviadas</div>
+            </div>
+            <div class="kpi-card kpi-warning">
+                <div class="kpi-header">
+                    <span class="kpi-label">Na Fila</span>
+                    <div class="kpi-icon orange">
+                        <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"/></svg>
+                    </div>
+                </div>
+                <div class="kpi-value" id="kpiQueued">0</div>
+                <div class="kpi-desc">Aguardando envio</div>
+            </div>
+            <div class="kpi-card kpi-info">
+                <div class="kpi-header">
+                    <span class="kpi-label">Recebidas</span>
+                    <div class="kpi-icon blue">
+                        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+                    </div>
+                </div>
+                <div class="kpi-value" id="kpiReceived">0</div>
+                <div class="kpi-desc">Mensagens recebidas</div>
+            </div>
         </div>
 
-        <!-- Status -->
-        <div class="card">
-            <h2>Mensagens Recentes</h2>
-            <div id="messagesArea">
-                <div class="empty-state">Carregando...</div>
+        <!-- ─── MAIN GRID ─── -->
+        <div class="main-grid">
+            <!-- QR / Connection -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13-2h-2v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
+                        Conexão
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="qr-area">
+                        <div class="qr-frame" id="qrFrame">
+                            <div class="qr-placeholder">
+                                <svg viewBox="0 0 24 24" fill="currentColor" opacity="0.3"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4z"/></svg>
+                                Carregando...
+                            </div>
+                        </div>
+                        <div class="conn-info">
+                            <div class="conn-info-item">
+                                <div class="label">Status</div>
+                                <div class="val" id="connStatus">--</div>
+                            </div>
+                            <div class="conn-info-item">
+                                <div class="label">QR Code</div>
+                                <div class="val" id="qrStatus">--</div>
+                            </div>
+                        </div>
+                        <div class="refresh-tag">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                            Atualiza a cada 5s
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Messages -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+                        Mensagens Recentes
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="messages-scroll" id="messagesArea">
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+                            <h3>Carregando...</h3>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Logs -->
-        <div class="card logs-section">
-            <div class="logs-header">
-                <h2>Log de Envios</h2>
-                <div class="logs-filters">
-                    <button class="filter-btn active" data-filter="">Todos</button>
-                    <button class="filter-btn" data-filter="sent">Enviados</button>
-                    <button class="filter-btn" data-filter="queued">Na fila</button>
-                    <button class="filter-btn" data-filter="failed">Falhos</button>
+        <!-- ─── LOGS ─── -->
+        <div class="card logs-card">
+            <div class="card-header">
+                <div class="logs-header">
+                    <span class="card-title">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7v-7zm4-3h2v10h-2V7zm4 6h2v4h-2v-4z"/></svg>
+                        Log de Envios
+                    </span>
+                    <div class="filters">
+                        <button class="filter-btn active" data-filter="" aria-label="Mostrar todos os logs">Todos</button>
+                        <button class="filter-btn" data-filter="sent" aria-label="Filtrar enviados">Enviados</button>
+                        <button class="filter-btn" data-filter="queued" aria-label="Filtrar na fila">Na fila</button>
+                        <button class="filter-btn" data-filter="failed" aria-label="Filtrar falhos">Falhos</button>
+                    </div>
                 </div>
             </div>
-            <div id="logsArea">
-                <div class="empty-state">Carregando...</div>
+            <div class="card-body">
+                <div class="table-wrap" id="logsArea">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
+                        <h3>Carregando...</h3>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- ─── FOOTER ─── -->
+    <footer class="footer">
+        <span>nottu gateway</span> · v1.0.0 · Powered by <a href="#">nottu tech</a>
+    </footer>
+
     <script>
-        const API_KEY = new URLSearchParams(window.location.search).get("api_key") || "";
+        /* ─── CONFIG ─── */
+        const API_KEY = new URLSearchParams(location.search).get("api_key") || "";
+        const REFRESH_INTERVAL = 5000;
         let currentFilter = "";
+        let isRefreshing = false;
 
         const headers = { "x-api-key": API_KEY };
 
+        /* ─── XSS PROTECTION ─── */
+        function esc(str) {
+            if (!str) return "";
+            const d = document.createElement("div");
+            d.appendChild(document.createTextNode(str));
+            return d.innerHTML;
+        }
+
+        /* ─── FETCH HELPER ─── */
         async function fetchJson(url) {
             try {
                 const res = await fetch(url, { headers });
@@ -259,126 +782,175 @@
             } catch { return null; }
         }
 
+        /* ─── DOM HELPERS ─── */
+        const $ = (id) => document.getElementById(id);
+        function setHTML(id, html) { const el = $(id); if (el) el.innerHTML = html; }
+        function setText(id, text) { const el = $(id); if (el) el.textContent = text; }
+
+        /* ─── UPDATE STATUS ─── */
         async function updateStatus() {
             const data = await fetchJson("/status");
-            const badge = document.getElementById("statusBadge");
-            const connStatus = document.getElementById("connStatus");
-            const qrStatus = document.getElementById("qrStatus");
+            const badge = $("statusBadge");
+            const kpiStatus = $("kpiStatus");
+            const kpiDesc = $("kpiStatusDesc");
+            const connStatus = $("connStatus");
+            const qrStatus = $("qrStatus");
 
             if (!data) {
                 badge.className = "status-badge status-disconnected";
-                badge.textContent = "Erro";
+                badge.innerHTML = '<span class="status-dot offline"></span>Erro';
+                setText("kpiStatus", "Erro");
+                setText("kpiStatusDesc", "Falha na comunicação");
                 return;
             }
 
             if (data.ready) {
                 badge.className = "status-badge status-connected";
-                badge.textContent = "Conectado";
+                badge.innerHTML = '<span class="status-dot online"></span>Conectado';
+                kpiStatus.textContent = "Online";
+                kpiStatus.style.color = "var(--success)";
+                kpiDesc.textContent = "WhatsApp ativo";
                 connStatus.textContent = "Online";
-                connStatus.style.color = "#25D366";
+                connStatus.style.color = "var(--success)";
                 qrStatus.textContent = "N/A";
+                qrStatus.style.color = "var(--text-muted)";
             } else if (data.hasQr) {
                 badge.className = "status-badge status-loading";
-                badge.textContent = "Aguardando QR";
+                badge.innerHTML = '<span class="status-dot waiting"></span>Aguardando';
+                kpiStatus.textContent = "QR";
+                kpiStatus.style.color = "var(--warning)";
+                kpiDesc.textContent = "Escaneie o QR Code";
                 connStatus.textContent = "Offline";
-                connStatus.style.color = "#ffaa00";
+                connStatus.style.color = "var(--warning)";
                 qrStatus.textContent = "Disponível";
-                qrStatus.style.color = "#3b82f6";
+                qrStatus.style.color = "var(--info)";
             } else {
                 badge.className = "status-badge status-disconnected";
-                badge.textContent = "Desconectado";
+                badge.innerHTML = '<span class="status-dot offline"></span>Offline';
+                kpiStatus.textContent = "Offline";
+                kpiStatus.style.color = "var(--error)";
+                kpiDesc.textContent = "Desconectado";
                 connStatus.textContent = "Offline";
-                connStatus.style.color = "#ff4444";
+                connStatus.style.color = "var(--error)";
                 qrStatus.textContent = "Indisponível";
+                qrStatus.style.color = "var(--text-muted)";
             }
         }
 
+        /* ─── UPDATE QR ─── */
         async function updateQr() {
             const status = await fetchJson("/status");
-            const qrArea = document.getElementById("qrArea");
+            const frame = $("qrFrame");
 
             if (status && status.ready) {
-                qrArea.innerHTML = `
-                    <div class="qr-placeholder">
-                        <div class="connected-msg">
-                            &#x2705;
-                            <span>WhatsApp Conectado</span>
+                frame.classList.remove("has-glow");
+                frame.innerHTML = `
+                    <div class="connected-check">
+                        <div class="check-circle">
+                            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
                         </div>
+                        <span>WhatsApp Conectado</span>
                     </div>`;
                 return;
             }
 
             const data = await fetchJson("/qr");
             if (data && data.qr) {
-                qrArea.innerHTML = `<img src="${data.qr}" alt="QR Code" />`;
+                frame.classList.add("has-glow");
+                frame.innerHTML = '<img src="' + esc(data.qr) + '" alt="QR Code para conexão" />';
             } else {
-                qrArea.innerHTML = `<div class="qr-placeholder">Sem QR disponível</div>`;
+                frame.classList.remove("has-glow");
+                frame.innerHTML = `
+                    <div class="qr-placeholder">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4z"/></svg>
+                        Sem QR disponível
+                    </div>`;
             }
         }
 
+        /* ─── UPDATE LOGS ─── */
         async function updateLogs() {
-            const filterParam = currentFilter ? `&status=${currentFilter}` : "";
-            const data = await fetchJson(`/logs?limit=20${filterParam}`);
-            const area = document.getElementById("logsArea");
+            const filterParam = currentFilter ? "&status=" + encodeURIComponent(currentFilter) : "";
+            const data = await fetchJson("/logs?limit=20" + filterParam);
+            const area = $("logsArea");
 
             if (!data || data.length === 0) {
-                area.innerHTML = `<div class="empty-state">Nenhum log encontrado</div>`;
+                area.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
+                        <h3>Nenhum log encontrado</h3>
+                        <p>Os logs aparecerão aqui quando mensagens forem enviadas</p>
+                    </div>`;
+                // Update KPIs
+                setText("kpiSent", "0");
+                setText("kpiQueued", "0");
                 return;
             }
+
+            // Count KPIs from logs
+            let sent = 0, queued = 0;
+            data.forEach(l => {
+                if (l.status === "sent") sent++;
+                if (l.status === "queued") queued++;
+            });
+            setText("kpiSent", String(sent));
+            setText("kpiQueued", String(queued));
 
             const rows = data.map(log => {
                 const date = new Date(log.created_at).toLocaleString("pt-BR");
-                const badgeClass = `badge-${log.status}`;
-                return `<tr>
-                    <td>${log.id}</td>
-                    <td>${log.to_number}</td>
-                    <td title="${log.message_text}">${log.message_text?.substring(0, 40) || ""}${log.message_text?.length > 40 ? "..." : ""}</td>
-                    <td><span class="badge ${badgeClass}">${log.status}</span></td>
-                    <td>${log.attempts || 0}</td>
-                    <td>${date}</td>
-                </tr>`;
+                const badgeClass = "badge-" + esc(log.status);
+                const msgText = esc(log.message_text || "");
+                const short = msgText.length > 40 ? msgText.substring(0, 40) + "…" : msgText;
+                return '<tr class="fade-in">'
+                    + '<td style="color:var(--text-muted);font-variant-numeric:tabular-nums">' + log.id + '</td>'
+                    + '<td style="font-weight:500">' + esc(log.to_number) + '</td>'
+                    + '<td class="msg-cell" title="' + msgText + '">' + short + '</td>'
+                    + '<td><span class="badge ' + badgeClass + '">' + esc(log.status) + '</span></td>'
+                    + '<td style="text-align:center">' + (log.attempts || 0) + '</td>'
+                    + '<td style="color:var(--text-muted);font-size:12px">' + esc(date) + '</td>'
+                    + '</tr>';
             }).join("");
 
-            area.innerHTML = `
-                <table class="logs-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Destino</th>
-                            <th>Mensagem</th>
-                            <th>Status</th>
-                            <th>Tentativas</th>
-                            <th>Data</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>`;
+            area.innerHTML = '<table class="logs-table">'
+                + '<thead><tr>'
+                + '<th>ID</th><th>Destino</th><th>Mensagem</th><th>Status</th><th>Tent.</th><th>Data</th>'
+                + '</tr></thead>'
+                + '<tbody>' + rows + '</tbody></table>';
         }
 
+        /* ─── UPDATE MESSAGES ─── */
         async function updateMessages() {
-            const data = await fetchJson("/messages?limit=10");
-            const area = document.getElementById("messagesArea");
+            const data = await fetchJson("/messages?limit=15");
+            const area = $("messagesArea");
 
             if (!data || !data.messages || data.messages.length === 0) {
-                area.innerHTML = `<div class="empty-state">Nenhuma mensagem recebida</div>`;
+                area.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+                        <h3>Nenhuma mensagem</h3>
+                        <p>Mensagens recebidas aparecerão aqui</p>
+                    </div>`;
+                setText("kpiReceived", "0");
                 return;
             }
 
+            setText("kpiReceived", String(data.messages.length));
+
             const items = data.messages.map(msg => {
                 const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString("pt-BR") : "";
-                return `<div style="padding:10px 0;border-bottom:1px solid #1a1a1a">
-                    <div style="display:flex;justify-content:space-between">
-                        <strong style="color:#25D366;font-size:13px">${msg.sender || msg.from}</strong>
-                        <span style="color:#555;font-size:11px">${time}</span>
-                    </div>
-                    <div style="color:#ccc;font-size:13px;margin-top:4px">${msg.text || msg.type || "mídia"}</div>
-                </div>`;
+                return '<div class="msg-item fade-in">'
+                    + '<div class="msg-top">'
+                    + '<span class="msg-sender">' + esc(msg.sender || msg.from) + '</span>'
+                    + '<span class="msg-time">' + esc(time) + '</span>'
+                    + '</div>'
+                    + '<div class="msg-text">' + esc(msg.text || msg.type || "mídia") + '</div>'
+                    + '</div>';
             }).join("");
 
             area.innerHTML = items;
         }
 
-        // Filters
+        /* ─── FILTER BUTTONS ─── */
         document.querySelectorAll(".filter-btn").forEach(btn => {
             btn.addEventListener("click", () => {
                 document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
@@ -388,13 +960,25 @@
             });
         });
 
-        // Initial load
+        /* ─── REFRESH CYCLE ─── */
         async function refresh() {
-            await Promise.all([updateStatus(), updateQr(), updateLogs(), updateMessages()]);
+            if (isRefreshing) return;
+            isRefreshing = true;
+
+            const indicator = $("refreshIndicator");
+            indicator.classList.add("refreshing");
+
+            try {
+                await Promise.all([updateStatus(), updateQr(), updateLogs(), updateMessages()]);
+                setText("lastRefresh", new Date().toLocaleTimeString("pt-BR"));
+            } catch { /* silent */ }
+
+            indicator.classList.remove("refreshing");
+            isRefreshing = false;
         }
 
         refresh();
-        setInterval(refresh, 5000);
+        setInterval(refresh, REFRESH_INTERVAL);
     </script>
 </body>
 </html>
