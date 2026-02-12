@@ -16,18 +16,15 @@ let isReady = false;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
 
-// buffer circular de mensagens recebidas (últimas 500)
 const MAX_MESSAGES = 500;
 let receivedMessages = [];
 
 function getReconnectDelay() {
-    // backoff exponencial: 2s, 4s, 8s, 16s... até 60s no máximo
     const delay = Math.min(2000 * Math.pow(2, reconnectAttempts), 60000);
     return delay;
 }
 
 async function whatsappInit() {
-    // limpa socket anterior se existir
     if (sock) {
         try {
             sock.ev.removeAllListeners();
@@ -43,15 +40,13 @@ async function whatsappInit() {
         version,
         auth: state,
         logger: P({ level: "silent" }),
-        // otimizações para produção
-        markOnlineOnConnect: false,       // não marca "online" automaticamente
-        syncFullHistory: false,           // não baixa histórico (economiza memória)
-        generateHighQualityLinkPreview: false, // economiza processamento
+        markOnlineOnConnect: false,
+        syncFullHistory: false,
+        generateHighQualityLinkPreview: false,
     });
 
     sock.ev.on("creds.update", saveCreds);
 
-    // QR Code
     sock.ev.on("connection.update", async (update) => {
         const { connection, lastDisconnect, qr } = update;
 
@@ -64,7 +59,7 @@ async function whatsappInit() {
         if (connection === "open") {
             isReady = true;
             lastQrDataUrl = null;
-            reconnectAttempts = 0; // reseta contador ao conectar
+            reconnectAttempts = 0;
             logger.info("WhatsApp conectado!");
             dispatchWebhook("status", { status: "connected" });
         }
@@ -84,7 +79,7 @@ async function whatsappInit() {
                 if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
                     logger.error(`Falhou ${MAX_RECONNECT_ATTEMPTS} tentativas de reconexão. Aguardando restart do PM2.`);
                     dispatchWebhook("status", { status: "reconnect_exhausted", attempts: reconnectAttempts });
-                    process.exit(1); // PM2 vai reiniciar o processo
+                    process.exit(1);
                 }
 
                 const delay = getReconnectDelay();
@@ -97,20 +92,17 @@ async function whatsappInit() {
         }
     });
 
-    // Listener de mensagens recebidas
     sock.ev.on("messages.upsert", async ({ messages: msgs, type }) => {
         if (type !== "notify") return;
 
         for (const msg of msgs) {
-            if (msg.key.fromMe) continue; // ignora mensagens enviadas por nós
+            if (msg.key.fromMe) continue;
 
             const from = msg.key.remoteJid;
             const sender = msg.pushName || from;
             const timestamp = msg.messageTimestamp
                 ? new Date(Number(msg.messageTimestamp) * 1000).toISOString()
                 : new Date().toISOString();
-
-            // extrai texto da mensagem
             const text =
                 msg.message?.conversation ||
                 msg.message?.extendedTextMessage?.text ||
@@ -137,15 +129,12 @@ async function whatsappInit() {
 
             logger.info(`Mensagem de ${sender} (${from}): ${text || `[${messageType}]`}`);
 
-            // dispara webhook para o CRM
             dispatchWebhook("message", parsed);
         }
     });
 
-    // Listener de status de entrega / leitura
     sock.ev.on("messages.update", (updates) => {
         for (const update of updates) {
-            // status: 2 = delivered, 3 = read, 4 = played (audio)
             const statusMap = { 2: "delivered", 3: "read", 4: "played" };
             const statusName = statusMap[update.update?.status];
 
@@ -217,7 +206,7 @@ async function sendAudio(to, url, ptt = false) {
     const jid = `${to.replace(/\D/g, "")}@s.whatsapp.net`;
     const result = await sock.sendMessage(jid, {
         audio: { url },
-        ptt, // true = áudio de voz (bolinha), false = arquivo de áudio
+        ptt,
     });
     return { ok: true, messageId: result?.key?.id };
 }

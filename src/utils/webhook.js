@@ -1,21 +1,9 @@
-/**
- * Webhook dispatcher — dispara eventos para o CRM via HTTP POST
- *
- * Eventos:
- *  - message        → mensagem recebida
- *  - message.sent   → mensagem enviada com sucesso
- *  - message.failed → mensagem falhou após todas tentativas
- *  - status         → conexão mudou (connected / disconnected / qr)
- *  - message.update → status de entrega (delivered, read, played)
- */
-
 const WEBHOOK_URL = process.env.WEBHOOK_URL || null;
 const WEBHOOK_TOKEN = process.env.WEBHOOK_TOKEN || null;
 const WEBHOOK_TIMEOUT_MS = Number(process.env.WEBHOOK_TIMEOUT_MS) || 5000;
 
 async function dispatchWebhook(event, data) {
-    if (!WEBHOOK_URL) return; // webhook não configurado, ignora silenciosamente
-
+    if (!WEBHOOK_URL) return;
     const payload = {
         event,
         timestamp: new Date().toISOString(),
@@ -44,7 +32,6 @@ async function dispatchWebhook(event, data) {
             console.log(`⚠️ Webhook ${event} respondeu ${resp.status}`);
         }
     } catch (err) {
-        // nunca deixa erro de webhook derrubar o gateway
         console.log(`⚠️ Webhook ${event} falhou: ${err.message}`);
     }
 }

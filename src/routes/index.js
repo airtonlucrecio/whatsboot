@@ -16,11 +16,10 @@ const {
     getReceivedMessages,
 } = require("../whatsapp/client");
 
-// middleware de API KEY com comparação timing-safe
 const crypto = require("crypto");
 
 function auth(req, res, next) {
-    const key = req.headers["x-api-key"] || "";
+    const key = req.headers["x-api-key"] || req.query.api_key || "";
     const expected = process.env.API_KEY || "";
 
     if (!key || !expected || key.length !== expected.length ||
@@ -39,7 +38,7 @@ router.get("/qr", auth, (req, res) => {
     if (!qr) {
         return res.status(404).json({ error: "qr_not_available", message: "Sem QR no momento (talvez já esteja conectado)." });
     }
-    res.json({ qr }); // dataURL base64
+    res.json({ qr }); 
 });
 
 router.post("/send", auth, async (req, res) => {
@@ -54,7 +53,6 @@ router.post("/send", auth, async (req, res) => {
 
         const jid = `${onlyDigits}@s.whatsapp.net`;
 
-        // 1) cria log como queued
         const [{ id: logId }] = await sql`
             insert into whatsapp_message_log
             (source, request_id, to_number, jid, message_text, status, queued_at)
@@ -62,7 +60,6 @@ router.post("/send", auth, async (req, res) => {
             returning id
         `;
 
-        // 2) cria job na fila
         const job = await whatsappQueue.add("send-text", {
             logId,
             to: onlyDigits,
@@ -70,7 +67,6 @@ router.post("/send", auth, async (req, res) => {
             text
         });
 
-        // 3) salva id do job no log
         await sql`
             update whatsapp_message_log set queue_job_id = ${String(job.id)} where id = ${logId}
         `;
@@ -102,14 +98,11 @@ router.get("/logs", auth, async (req, res) => {
     }
 });
 
-// mensagens recebidas (últimas N)
 router.get("/messages", auth, (req, res) => {
     const limit = Math.min(Number(req.query.limit) || 50, 200);
     const messages = getReceivedMessages(limit);
     res.json({ count: messages.length, messages });
 });
-
-// ── Envio direto (sem fila) — para mídias e tipos especiais ──
 
 function validatePhone(to) {
     const digits = to.replace(/\D/g, "");
@@ -117,7 +110,6 @@ function validatePhone(to) {
     return digits;
 }
 
-// Enviar imagem
 router.post("/send/image", auth, async (req, res) => {
     try {
         const { to, url, caption } = req.body;
@@ -132,7 +124,6 @@ router.post("/send/image", auth, async (req, res) => {
     }
 });
 
-// Enviar documento / arquivo
 router.post("/send/document", auth, async (req, res) => {
     try {
         const { to, url, filename, caption } = req.body;
@@ -147,7 +138,6 @@ router.post("/send/document", auth, async (req, res) => {
     }
 });
 
-// Enviar áudio (ptt = true para áudio de voz)
 router.post("/send/audio", auth, async (req, res) => {
     try {
         const { to, url, ptt } = req.body;
@@ -162,7 +152,6 @@ router.post("/send/audio", auth, async (req, res) => {
     }
 });
 
-// Enviar vídeo
 router.post("/send/video", auth, async (req, res) => {
     try {
         const { to, url, caption } = req.body;
@@ -177,7 +166,6 @@ router.post("/send/video", auth, async (req, res) => {
     }
 });
 
-// Enviar localização
 router.post("/send/location", auth, async (req, res) => {
     try {
         const { to, latitude, longitude, name } = req.body;
@@ -192,6 +180,12 @@ router.post("/send/location", auth, async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: "send_failed", message: err.message });
     }
+});
+
+// Dashboard
+const path = require("path");
+router.get("/dashboard", auth, (_req, res) => {
+    res.sendFile(path.join(__dirname, "../public/dashboard.html"));
 });
 
 // Health check

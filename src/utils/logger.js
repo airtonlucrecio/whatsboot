@@ -6,7 +6,7 @@ if (process.env.NODE_ENV !== "production") {
         require.resolve("pino-pretty");
         transport = { target: "pino-pretty", options: { colorize: true, translateTime: "SYS:HH:MM:ss" } };
     } catch (_) {
-        // pino-pretty não instalada, usa output padrão
+        // pino-pretty não está instalado, ignora
     }
 }
 

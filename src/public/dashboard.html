@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Gateway</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .header {
+            background: #111;
+            border-bottom: 1px solid #222;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header h1 {
+            font-size: 18px;
+            color: #25D366;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-connected { background: #25D36622; color: #25D366; }
+        .status-disconnected { background: #ff444422; color: #ff4444; }
+        .status-loading { background: #ffaa0022; color: #ffaa00; }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 24px;
+        }
+
+        .card {
+            background: #141414;
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .card h2 {
+            font-size: 14px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        /* QR Section */
+        .qr-section { text-align: center; }
+        .qr-section img {
+            width: 280px;
+            height: 280px;
+            border-radius: 8px;
+            background: #fff;
+            padding: 8px;
+        }
+        .qr-placeholder {
+            width: 280px;
+            height: 280px;
+            border-radius: 8px;
+            background: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            color: #555;
+            font-size: 14px;
+            border: 2px dashed #333;
+        }
+        .connected-msg {
+            color: #25D366;
+            font-size: 48px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        .connected-msg span { font-size: 14px; }
+
+        /* Info */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .info-item {
+            background: #1a1a1a;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .info-item label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        .info-item .value {
+            font-size: 18px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        /* Logs */
+        .logs-section { grid-column: 1 / -1; }
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .logs-header h2 { margin-bottom: 0; }
+        .logs-filters {
+            display: flex;
+            gap: 8px;
+        }
+        .filter-btn {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #aaa;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .filter-btn.active {
+            background: #25D36622;
+            border-color: #25D366;
+            color: #25D366;
+        }
+        .logs-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .logs-table th {
+            text-align: left;
+            padding: 10px 12px;
+            background: #1a1a1a;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+        .logs-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #1a1a1a;
+        }
+        .logs-table tr:hover { background: #1a1a1a55; }
+        .badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-sent { background: #25D36622; color: #25D366; }
+        .badge-queued { background: #3b82f622; color: #3b82f6; }
+        .badge-failed { background: #ff444422; color: #ff4444; }
+        .badge-retrying { background: #ffaa0022; color: #ffaa00; }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #444;
+        }
+
+        .refresh-info {
+            font-size: 11px;
+            color: #444;
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>&#x1F4F1; WhatsApp Gateway</h1>
+        <div id="statusBadge" class="status-badge status-loading">Carregando...</div>
+    </div>
+
+    <div class="container">
+        <!-- QR / Conexão -->
+        <div class="card qr-section">
+            <h2>Conexão</h2>
+            <div id="qrArea">
+                <div class="qr-placeholder">Carregando...</div>
+            </div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Status</label>
+                    <div class="value" id="connStatus">--</div>
+                </div>
+                <div class="info-item">
+                    <label>QR</label>
+                    <div class="value" id="qrStatus">--</div>
+                </div>
+            </div>
+            <div class="refresh-info">Atualiza a cada 5 segundos</div>
+        </div>
+
+        <!-- Status -->
+        <div class="card">
+            <h2>Mensagens Recentes</h2>
+            <div id="messagesArea">
+                <div class="empty-state">Carregando...</div>
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="card logs-section">
+            <div class="logs-header">
+                <h2>Log de Envios</h2>
+                <div class="logs-filters">
+                    <button class="filter-btn active" data-filter="">Todos</button>
+                    <button class="filter-btn" data-filter="sent">Enviados</button>
+                    <button class="filter-btn" data-filter="queued">Na fila</button>
+                    <button class="filter-btn" data-filter="failed">Falhos</button>
+                </div>
+            </div>
+            <div id="logsArea">
+                <div class="empty-state">Carregando...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = new URLSearchParams(window.location.search).get("api_key") || "";
+        let currentFilter = "";
+
+        const headers = { "x-api-key": API_KEY };
+
+        async function fetchJson(url) {
+            try {
+                const res = await fetch(url, { headers });
+                if (!res.ok) return null;
+                return await res.json();
+            } catch { return null; }
+        }
+
+        async function updateStatus() {
+            const data = await fetchJson("/status");
+            const badge = document.getElementById("statusBadge");
+            const connStatus = document.getElementById("connStatus");
+            const qrStatus = document.getElementById("qrStatus");
+
+            if (!data) {
+                badge.className = "status-badge status-disconnected";
+                badge.textContent = "Erro";
+                return;
+            }
+
+            if (data.ready) {
+                badge.className = "status-badge status-connected";
+                badge.textContent = "Conectado";
+                connStatus.textContent = "Online";
+                connStatus.style.color = "#25D366";
+                qrStatus.textContent = "N/A";
+            } else if (data.hasQr) {
+                badge.className = "status-badge status-loading";
+                badge.textContent = "Aguardando QR";
+                connStatus.textContent = "Offline";
+                connStatus.style.color = "#ffaa00";
+                qrStatus.textContent = "Disponível";
+                qrStatus.style.color = "#3b82f6";
+            } else {
+                badge.className = "status-badge status-disconnected";
+                badge.textContent = "Desconectado";
+                connStatus.textContent = "Offline";
+                connStatus.style.color = "#ff4444";
+                qrStatus.textContent = "Indisponível";
+            }
+        }
+
+        async function updateQr() {
+            const status = await fetchJson("/status");
+            const qrArea = document.getElementById("qrArea");
+
+            if (status && status.ready) {
+                qrArea.innerHTML = `
+                    <div class="qr-placeholder">
+                        <div class="connected-msg">
+                            &#x2705;
+                            <span>WhatsApp Conectado</span>
+                        </div>
+                    </div>`;
+                return;
+            }
+
+            const data = await fetchJson("/qr");
+            if (data && data.qr) {
+                qrArea.innerHTML = `<img src="${data.qr}" alt="QR Code" />`;
+            } else {
+                qrArea.innerHTML = `<div class="qr-placeholder">Sem QR disponível</div>`;
+            }
+        }
+
+        async function updateLogs() {
+            const filterParam = currentFilter ? `&status=${currentFilter}` : "";
+            const data = await fetchJson(`/logs?limit=20${filterParam}`);
+            const area = document.getElementById("logsArea");
+
+            if (!data || data.length === 0) {
+                area.innerHTML = `<div class="empty-state">Nenhum log encontrado</div>`;
+                return;
+            }
+
+            const rows = data.map(log => {
+                const date = new Date(log.created_at).toLocaleString("pt-BR");
+                const badgeClass = `badge-${log.status}`;
+                return `<tr>
+                    <td>${log.id}</td>
+                    <td>${log.to_number}</td>
+                    <td title="${log.message_text}">${log.message_text?.substring(0, 40) || ""}${log.message_text?.length > 40 ? "..." : ""}</td>
+                    <td><span class="badge ${badgeClass}">${log.status}</span></td>
+                    <td>${log.attempts || 0}</td>
+                    <td>${date}</td>
+                </tr>`;
+            }).join("");
+
+            area.innerHTML = `
+                <table class="logs-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Destino</th>
+                            <th>Mensagem</th>
+                            <th>Status</th>
+                            <th>Tentativas</th>
+                            <th>Data</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>`;
+        }
+
+        async function updateMessages() {
+            const data = await fetchJson("/messages?limit=10");
+            const area = document.getElementById("messagesArea");
+
+            if (!data || !data.messages || data.messages.length === 0) {
+                area.innerHTML = `<div class="empty-state">Nenhuma mensagem recebida</div>`;
+                return;
+            }
+
+            const items = data.messages.map(msg => {
+                const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString("pt-BR") : "";
+                return `<div style="padding:10px 0;border-bottom:1px solid #1a1a1a">
+                    <div style="display:flex;justify-content:space-between">
+                        <strong style="color:#25D366;font-size:13px">${msg.sender || msg.from}</strong>
+                        <span style="color:#555;font-size:11px">${time}</span>
+                    </div>
+                    <div style="color:#ccc;font-size:13px;margin-top:4px">${msg.text || msg.type || "mídia"}</div>
+                </div>`;
+            }).join("");
+
+            area.innerHTML = items;
+        }
+
+        // Filters
+        document.querySelectorAll(".filter-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                currentFilter = btn.dataset.filter;
+                updateLogs();
+            });
+        });
+
+        // Initial load
+        async function refresh() {
+            await Promise.all([updateStatus(), updateQr(), updateLogs(), updateMessages()]);
+        }
+
+        refresh();
+        setInterval(refresh, 5000);
+    </script>
+</body>
+</html>
