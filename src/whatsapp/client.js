@@ -238,6 +238,28 @@ async function sendLocation(to, latitude, longitude, name) {
     return { ok: true, messageId: result?.key?.id };
 }
 
+async function disconnect() {
+    if (!sock) {
+        throw new Error("WhatsApp não está conectado");
+    }
+    
+    try {
+        isReady = false;
+        lastQrDataUrl = null;
+        reconnectAttempts = 0;
+        sock.ev.removeAllListeners();
+        await sock.logout();
+        sock.ws.close();
+        sock = null;
+        logger.info("WhatsApp desconectado pelo usuário");
+        dispatchWebhook("status", { status: "manual_disconnect" });
+    } catch (err) {
+        logger.error({ err: err.message }, "Erro ao desconectar WhatsApp");
+        sock = null;
+        throw err;
+    }
+}
+
 module.exports = {
     whatsappInit,
     getStatus,
@@ -249,4 +271,5 @@ module.exports = {
     sendAudio,
     sendVideo,
     sendLocation,
+    disconnect,
 };

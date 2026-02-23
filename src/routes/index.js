@@ -15,6 +15,7 @@ const {
     sendVideo,
     sendLocation,
     getReceivedMessages,
+    disconnect,
 } = require("../whatsapp/client");
 
 const crypto = require("crypto");
@@ -42,6 +43,15 @@ router.get("/qr", auth, (req, res) => {
         return res.status(404).json({ error: "qr_not_available", message: "Sem QR no momento (talvez já esteja conectado)." });
     }
     res.json({ qr }); 
+});
+
+router.post("/disconnect", auth, async (req, res) => {
+    try {
+        await disconnect();
+        res.json({ ok: true, message: "WhatsApp desconectado com sucesso" });
+    } catch (err) {
+        res.status(500).json({ error: "disconnect_failed", message: err.message });
+    }
 });
 
 router.post("/send", auth, async (req, res) => {
