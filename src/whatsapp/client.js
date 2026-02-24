@@ -166,69 +166,103 @@ function getReceivedMessages(limit = 50) {
     return receivedMessages.slice(0, limit);
 }
 
+// Resolve o JID correto consultando o servidor do WhatsApp.
+// Necessário para números brasileiros com migração 8→9 dígitos.
+async function resolveJid(to) {
+    const digits = to.replace(/\D/g, "");
+
+    // Tenta consultar o WhatsApp pelo número informado
+    const candidates = [digits];
+
+    // Para números brasileiros (55 + DDD 2 dig):
+    // Se veio com 12 dígitos (55+DDD+8), tenta adicionar o 9
+    // Se veio com 13 dígitos (55+DDD+9), tenta remover o 9
+    if (digits.startsWith("55") && digits.length === 12) {
+        const withNine = digits.slice(0, 4) + "9" + digits.slice(4);
+        candidates.push(withNine);
+    } else if (digits.startsWith("55") && digits.length === 13) {
+        const withoutNine = digits.slice(0, 4) + digits.slice(5);
+        candidates.push(withoutNine);
+    }
+
+    for (const candidate of candidates) {
+        try {
+            const [result] = await sock.onWhatsApp(candidate);
+            if (result?.exists) {
+                logger.info(`JID resolvido: ${candidate} → ${result.jid}`);
+                return result.jid;
+            }
+        } catch (_) { /* ignora erros pontuais */ }
+    }
+
+    // Fallback: usa o número original sem verificação
+    logger.warn(`onWhatsApp não encontrou ${digits}, usando JID direto`);
+    return `${digits}@s.whatsapp.net`;
+}
+
 async function sendText(to, text) {
     if (!sock) throw new Error("WhatsApp socket não iniciado");
     if (!isReady) throw new Error("WhatsApp não está conectado");
 
-    const jid = `${to.replace(/\D/g, "")}@s.whatsapp.net`;
+    const jid = await resolveJid(to);
     const result = await sock.sendMessage(jid, { text });
-    return { ok: true, messageId: result?.key?.id };
+    return { ok: true, messageId: result?.key?.id, jid };
 }
 
 async function sendImage(to, url, caption) {
     if (!sock) throw new Error("WhatsApp socket não iniciado");
     if (!isReady) throw new Error("WhatsApp não está conectado");
 
-    const jid = `${to.replace(/\D/g, "")}@s.whatsapp.net`;
+    const jid = await resolveJid(to);
     const result = await sock.sendMessage(jid, {
         image: { url },
         caption: caption || undefined,
     });
-    return { ok: true, messageId: result?.key?.id };
+    return { ok: true, messageId: result?.key?.id, jid };
 }
 
 async function sendDocument(to, url, filename, caption) {
     if (!sock) throw new Error("WhatsApp socket não iniciado");
     if (!isReady) throw new Error("WhatsApp não está conectado");
 
-    const jid = `${to.replace(/\D/g, "")}@s.whatsapp.net`;
+    const jid = await resolveJid(to);
     const result = await sock.sendMessage(jid, {
         document: { url },
         fileName: filename || "arquivo",
         caption: caption || undefined,
     });
-    return { ok: true, messageId: result?.key?.id };
+    return { ok: true, messageId: result?.key?.id, jid };
 }
 
 async function sendAudio(to, url, ptt = false) {
     if (!sock) throw new Error("WhatsApp socket não iniciado");
     if (!isReady) throw new Error("WhatsApp não está conectado");
 
-    const jid = `${to.replace(/\D/g, "")}@s.whatsapp.net`;
+    const jid = await resolveJid(to);
     const result = await sock.sendMessage(jid, {
         audio: { url },
         ptt,
     });
-    return { ok: true, messageId: result?.key?.id };
+    return { ok: true, messageId: result?.key?.id, jid };
 }
 
 async function sendVideo(to, url, caption) {
     if (!sock) throw new Error("WhatsApp socket não iniciado");
     if (!isReady) throw new Error("WhatsApp não está conectado");
 
-    const jid = `${to.replace(/\D/g, "")}@s.whatsapp.net`;
+    const jid = await resolveJid(to);
     const result = await sock.sendMessage(jid, {
         video: { url },
         caption: caption || undefined,
     });
-    return { ok: true, messageId: result?.key?.id };
+    return { ok: true, messageId: result?.key?.id, jid };
 }
 
 async function sendLocation(to, latitude, longitude, name) {
     if (!sock) throw new Error("WhatsApp socket não iniciado");
     if (!isReady) throw new Error("WhatsApp não está conectado");
 
-    const jid = `${to.replace(/\D/g, "")}@s.whatsapp.net`;
+    const jid = await resolveJid(to);
     const result = await sock.sendMessage(jid, {
         location: {
             degreesLatitude: latitude,
@@ -236,7 +270,7 @@ async function sendLocation(to, latitude, longitude, name) {
             name: name || undefined,
         },
     });
-    return { ok: true, messageId: result?.key?.id };
+    return { ok: true, messageId: result?.key?.id, jid };
 }
 
 async function disconnect() {
