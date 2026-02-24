@@ -1,5 +1,5 @@
 const { Worker } = require("bullmq");
-const { connection } = require("./redis");
+const { createRedisConnection } = require("./redis");
 const { sendText } = require("../whatsapp/client");
 const { sql } = require("../db/pg");
 const { dispatchWebhook } = require("../utils/webhook");
@@ -44,7 +44,7 @@ const worker = new Worker(
         }
     },
     {
-        connection,
+        connection: createRedisConnection(),
         limiter: {
             max: Number(process.env.RATE_LIMIT_MAX || 1),
             duration: Number(process.env.RATE_LIMIT_DURATION_MS || 1000),
@@ -74,5 +74,11 @@ worker.on("failed", (job, err) => {
         });
     }
 });
+
+worker.on("error", (err) => {
+    logger.error({ error: err.message }, "Worker Redis error");
+});
+
+logger.info("Worker BullMQ iniciado");
 
 module.exports = { worker };

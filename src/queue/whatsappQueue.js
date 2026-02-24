@@ -1,8 +1,8 @@
 const { Queue } = require("bullmq");
-const { connection } = require("./redis");
+const { createRedisConnection } = require("./redis");
 
 const whatsappQueue = new Queue("whatsapp-send", {
-    connection,
+    connection: createRedisConnection(),
     defaultJobOptions: {
         attempts: 5,
         backoff: { type: "exponential", delay: 2000 },
