@@ -33,7 +33,8 @@ async function whatsappInit() {
         sock = null;
     }
 
-    const { state, saveCreds } = await useMultiFileAuthState("auth");
+    const authPath = process.env.AUTH_PATH || "auth";
+    const { state, saveCreds } = await useMultiFileAuthState(authPath);
     const { version } = await fetchLatestBaileysVersion();
 
     sock = makeWASocket({
