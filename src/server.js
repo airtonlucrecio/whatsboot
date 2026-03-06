@@ -1,9 +1,11 @@
-require("dotenv").config();
+const config = require("./config"); // carrega dotenv + valida env vars
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const logger = require("./utils/logger");
+const { requestId } = require("./middleware/requestId");
+const { AppError } = require("./utils/errors");
 
 const { whatsappInit } = require("./whatsapp/client");
 const routes = require("./routes");
@@ -12,29 +14,36 @@ const { connection: redis } = require("./queue/redis");
 
 const app = express();
 
+/* ─── TRUST PROXY (X-Forwarded-For correto atrás de nginx/railway) ─── */
+app.set("trust proxy", 1);
+
+/* ─── REQUEST ID ─── */
+app.use(requestId);
+
 /* ─── SECURITY ─── */
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'"],
             imgSrc: ["'self'", "data:"],
             connectSrc: ["'self'"],
         },
     },
     crossOriginEmbedderPolicy: false,
+    strictTransportSecurity: { maxAge: 31536000, includeSubDomains: true },
 }));
 
 app.disable("x-powered-by");
 
 /* ─── RATE LIMITING ─── */
 const apiLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 60,
+    windowMs: config.apiRateLimitWindowMs,
+    max: config.apiRateLimitMax,
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: (req) => req.headers["x-api-key"] || req.ip,
     message: { error: "too_many_requests", message: "Tente novamente em 1 minuto" },
     skip: (req) => req.path === "/healthz" || req.path === "/health",
 });
@@ -42,30 +51,35 @@ const apiLimiter = rateLimit({
 app.use(apiLimiter);
 
 /* ─── MIDDLEWARE ─── */
-app.use(cors());
-app.use(express.json({ limit: "1mb" }));
-
-/* ─── STATIC FILES ─── */
-const path = require("path");
-app.use(express.static(path.join(__dirname, "public"), {
-    maxAge: "7d",
-    etag: true,
+app.use(cors({
+    origin: config.corsOrigin.split(",").map((o) => o.trim()),
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type", "X-Api-Key", "X-Request-Id"],
 }));
+app.use(express.json({ limit: "1mb" }));
 
 app.use(routes);
 
+/* ─── ERROR HANDLER GLOBAL ─── */
 app.use((err, req, res, _next) => {
-    logger.error({ err, url: req.url, method: req.method }, "Erro não tratado na rota");
-    res.status(500).json({ error: "internal_server_error" });
+    if (err instanceof AppError) {
+        logger.warn({ err, url: req.url, method: req.method, requestId: req.id }, err.message);
+        return res.status(err.statusCode).json(err.toJSON());
+    }
+    logger.error({ err, url: req.url, method: req.method, requestId: req.id }, "Erro não tratado na rota");
+    return res.status(500).json({ error: "internal_server_error" });
 });
-
-const port = process.env.PORT || 3333;
 
 let server;
 
 (async () => {
-    require("./queue/worker");
-    server = app.listen(port, () => logger.info(`API rodando na porta ${port}`));
+    const { createWorker } = require("./queue/worker");
+    const { closeWorker } = createWorker();
+
+    server = app.listen(config.port, () => logger.info(`API rodando na porta ${config.port}`));
+
+    // Registra closeWorker para usar no shutdown
+    app.locals.closeWorker = closeWorker;
 
     whatsappInit().catch(err => logger.error({ err }, "Falha ao iniciar WhatsApp"));
 })();
@@ -73,14 +87,26 @@ let server;
 async function shutdown(signal) {
     logger.info(`${signal} recebido. Desligando...`);
 
-    if (server) {
-        server.close(() => logger.info("HTTP server fechado"));
-    }
+    await new Promise((resolve) => {
+        if (server) {
+            server.close(() => {
+                logger.info("HTTP server fechado");
+                resolve();
+            });
+        } else {
+            resolve();
+        }
+    });
 
-    try { await sql.end({ timeout: 5 }); logger.info("Postgres fechado"); } catch (_) { }
-    try { redis.disconnect(); logger.info("Redis desconectado"); } catch (_) { }
+    // Encerra o worker do BullMQ (para de pegar novos jobs)
+    try {
+        if (app.locals.closeWorker) await app.locals.closeWorker();
+    } catch (err) { logger.warn({ err: err.message }, "Erro ao fechar worker"); }
 
-    setTimeout(() => process.exit(0), 3000); 
+    try { await sql.end({ timeout: 5 }); logger.info("Postgres fechado"); } catch (err) { logger.warn({ err: err.message }, "Erro ao fechar Postgres"); }
+    try { redis.disconnect(); logger.info("Redis desconectado"); } catch (err) { logger.warn({ err: err.message }, "Erro ao desconectar Redis"); }
+
+    process.exit(0);
 }
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));

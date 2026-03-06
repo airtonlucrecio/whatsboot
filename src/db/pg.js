@@ -1,12 +1,15 @@
+"use strict";
+
 const postgres = require("postgres");
+const config = require("../config");
 const logger = require("../utils/logger");
 
-const sql = postgres(process.env.DATABASE_URL, {
-    max: 10,
+const sql = postgres(config.databaseUrl, {
+    max: config.dbPoolMax,
     idle_timeout: 30,
     connect_timeout: 5,
-    ssl: "require",
-    onnotice: () => {}, 
+    ssl: config.dbSsl || undefined,
+    onnotice: () => {},
 });
 
 logger.debug("Postgres.js configurado");

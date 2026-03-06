@@ -32,7 +32,7 @@ Gateway de WhatsApp via API REST, estilo Z-API / Evolution API. Conecta no Whats
 
 ## Requisitos
 
-- **Node.js** >= 18
+- **Node.js** >= 20
 - **Redis** (para fila BullMQ)
 - **PostgreSQL** (para logs de mensagens)
 
@@ -47,7 +47,7 @@ cd whatsapp-gateway
 npm install
 
 # 3. Configure o .env
-cp .env .env.local
+cp .env.example .env
 # edite o .env com suas configurações
 
 # 4. Crie a tabela no Postgres
@@ -157,6 +157,7 @@ Resposta:
   "url": "https://example.com/audio.mp3",
   "ptt": true
 }
+```
 > `ptt: true` envia como áudio de voz (bolinha). `false` envia como arquivo.
 
 #### `POST /send/video`
@@ -285,24 +286,40 @@ WhatsApp desconecta
 ## Estrutura do projeto
 
 ```
-├── .env                    # Configurações
+├── .env.example            # Modelo de configuração
 ├── .gitignore              # Ignora node_modules, auth, .env
+├── .dockerignore           # Exclui arquivos desnecessários da imagem Docker
+├── .prettierrc             # Configuração de formatação (Prettier)
+├── Dockerfile              # Build de produção
 ├── ecosystem.config.js     # Configuração PM2
 ├── package.json
 ├── schema.sql              # Schema do banco Postgres
 └── src/
+    ├── config.js           # Configuração centralizada (valida envs no boot)
     ├── server.js           # Express + startup + graceful shutdown
+    ├── controllers/
+    │   ├── LogController.js       # Handlers de logs e stats
+    │   └── WhatsAppController.js  # Handlers de envio/conexão/health
     ├── db/
     │   └── pg.js           # Pool PostgreSQL
+    ├── middleware/
+    │   ├── auth.js         # Autenticação via API key (timing-safe)
+    │   └── requestId.js    # Gera/valida X-Request-Id por requisição
     ├── queue/
     │   ├── redis.js        # Conexão Redis (ioredis)
     │   ├── whatsappQueue.js # Fila BullMQ
     │   └── worker.js       # Worker que processa envios
     ├── routes/
-    │   └── index.js        # Todas as rotas da API
+    │   └── index.js        # Definição centralizada de rotas (v1 + legacy)
+    ├── services/
+    │   └── messageService.js # Lógica de negócio: enfileirar, logs, stats
     ├── utils/
+    │   ├── errors.js       # Hierarquia de erros (AppError + subclasses)
     │   ├── logger.js       # Logger Pino
-    │   └── webhook.js      # Dispatcher de webhooks
+    │   ├── phoneNormalizer.js # Normalização de números BR (9º dígito)
+    │   ├── RingBuffer.js   # Buffer circular para mensagens em memória
+    │   ├── validators.js   # Validação de phone, URL, texto (anti-SSRF)
+    │   └── webhook.js      # Dispatcher de webhooks (com HMAC-SHA256)
     └── whatsapp/
         └── client.js       # Conexão Baileys + envio + recebimento
 ```

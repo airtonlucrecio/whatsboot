@@ -1,39 +1,74 @@
-const WEBHOOK_URL = process.env.WEBHOOK_URL || null;
-const WEBHOOK_TOKEN = process.env.WEBHOOK_TOKEN || null;
-const WEBHOOK_TIMEOUT_MS = Number(process.env.WEBHOOK_TIMEOUT_MS) || 5000;
+"use strict";
 
+const crypto = require("crypto");
+const config = require("../config");
+const logger = require("./logger");
+
+/**
+ * Gera assinatura HMAC-SHA256 do body.
+ * Permite que o receptor valide a autenticidade do webhook.
+ *
+ * @param {string} body   - JSON serializado do payload
+ * @param {string} secret - Chave secreta compartilhada
+ * @returns {string} Assinatura hex
+ */
+function signPayload(body, secret) {
+    return crypto.createHmac("sha256", secret).update(body).digest("hex");
+}
+
+/**
+ * Dispara webhook POST para o CRM configurado.
+ * Inclui X-Webhook-Token (legado) e X-Webhook-Signature (HMAC-SHA256).
+ *
+ * @param {string} event - Nome do evento (ex: "message", "status")
+ * @param {object} data  - Dados do evento
+ */
 async function dispatchWebhook(event, data) {
-    if (!WEBHOOK_URL) return;
+    if (!config.webhookUrl) return;
+
+    const webhookUrl = config.webhookUrl;
+    const webhookToken = config.webhookToken || null;
+    const timeoutMs = config.webhookTimeoutMs;
+
     const payload = {
         event,
         timestamp: new Date().toISOString(),
         data,
     };
 
+    const body = JSON.stringify(payload);
+
     try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
         const headers = { "Content-Type": "application/json" };
-        if (WEBHOOK_TOKEN) {
-            headers["X-Webhook-Token"] = WEBHOOK_TOKEN;
+
+        // Token legado (backward-compat)
+        if (webhookToken) {
+            headers["X-Webhook-Token"] = webhookToken;
         }
 
-        const resp = await fetch(WEBHOOK_URL, {
+        // Assinatura HMAC-SHA256 — permite ao receptor validar integridade
+        if (webhookToken) {
+            headers["X-Webhook-Signature"] = `sha256=${signPayload(body, webhookToken)}`;
+        }
+
+        const resp = await fetch(webhookUrl, {
             method: "POST",
             headers,
-            body: JSON.stringify(payload),
+            body,
             signal: controller.signal,
         });
 
         clearTimeout(timeout);
 
         if (!resp.ok) {
-            console.log(`⚠️ Webhook ${event} respondeu ${resp.status}`);
+            logger.warn({ event, status: resp.status }, "Webhook respondeu com erro");
         }
     } catch (err) {
-        console.log(`⚠️ Webhook ${event} falhou: ${err.message}`);
+        logger.error({ event, err: err.message }, "Falha ao disparar webhook");
     }
 }
 
-module.exports = { dispatchWebhook };
+module.exports = { dispatchWebhook, signPayload };

@@ -1,10 +1,17 @@
 node_modules
 auth
+tests
 .env
 .env.*
 *.log
+*.pem
 .git
 .gitignore
+.prettierrc
+.dockerignore
 README.md
 schema.sql
+eslint.config.js
+coverage
+logs
 _check.js

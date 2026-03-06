@@ -1,32 +1,36 @@
+"use strict";
+
 const IORedis = require("ioredis");
+const config = require("../config");
 const logger = require("../utils/logger");
 
-const redisUrl = process.env.REDIS_URL;
+const RETRY_CEILING_MS = 10_000;
+const RETRY_STEP_MS = 500;
 
-// BullMQ exige conexões separadas para Queue e Worker (Worker usa BLPOP bloqueante)
+/** Estratégia de reconexão exponencial com teto */
+function retryStrategy(times) {
+    const delay = Math.min(times * RETRY_STEP_MS, RETRY_CEILING_MS);
+    logger.warn(`Redis reconectando em ${delay}ms (tentativa ${times})`);
+    return delay;
+}
+
+/** BullMQ exige conexões separadas para Queue e Worker (Worker usa BLPOP bloqueante) */
 function createRedisConnection() {
-    const conn = redisUrl
-        ? new IORedis(redisUrl, {
+    if (config.redisUrl) {
+        return new IORedis(config.redisUrl, {
             maxRetriesPerRequest: null,
-            retryStrategy(times) {
-                const delay = Math.min(times * 500, 10000);
-                logger.warn(`Redis reconectando em ${delay}ms (tentativa ${times})`);
-                return delay;
-            },
-        })
-        : new IORedis({
-            host: process.env.REDIS_HOST || "localhost",
-            port: Number(process.env.REDIS_PORT) || 6379,
-            password: process.env.REDIS_PASSWORD || undefined,
-            maxRetriesPerRequest: null,
-            retryStrategy(times) {
-                const delay = Math.min(times * 500, 10000);
-                logger.warn(`Redis reconectando em ${delay}ms (tentativa ${times})`);
-                return delay;
-            },
+            tls: config.redisUrl.startsWith("rediss://") ? {} : undefined,
+            retryStrategy,
         });
+    }
 
-    return conn;
+    return new IORedis({
+        host: config.redisHost,
+        port: config.redisPort,
+        password: config.redisPassword || undefined,
+        maxRetriesPerRequest: null,
+        retryStrategy,
+    });
 }
 
 // Conexão principal usada no servidor para monitorar o Redis
