@@ -80,4 +80,38 @@ describe("auth middleware", () => {
         // Deve rejeitar mesmo com key correta na query
         expect(next).toHaveBeenCalledWith(expect.any(UnauthorizedError));
     });
+
+    test("aceita token via Authorization: Bearer", () => {
+        const req = mockReq({ authorization: "Bearer test-secret-key-12345" });
+        const res = mockRes();
+        const next = jest.fn();
+
+        auth(req, res, next);
+
+        expect(next).toHaveBeenCalledWith();
+        expect(next).toHaveBeenCalledTimes(1);
+    });
+
+    test("rejeita Bearer com token inválido", () => {
+        const req = mockReq({ authorization: "Bearer wrong-key-same-length!" });
+        const res = mockRes();
+        const next = jest.fn();
+
+        auth(req, res, next);
+
+        expect(next).toHaveBeenCalledWith(expect.any(UnauthorizedError));
+    });
+
+    test("x-api-key tem prioridade sobre Authorization", () => {
+        const req = mockReq({
+            "x-api-key": "test-secret-key-12345",
+            authorization: "Bearer wrong-key-same-length!",
+        });
+        const res = mockRes();
+        const next = jest.fn();
+
+        auth(req, res, next);
+
+        expect(next).toHaveBeenCalledWith();
+    });
 });

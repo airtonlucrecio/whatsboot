@@ -7,8 +7,22 @@ const { UnauthorizedError } = require("../utils/errors");
 
 const MAX_KEY_LENGTH = 256;
 
+/**
+ * Extrai a API key de:
+ *  1. Header `x-api-key: <token>`
+ *  2. Header `Authorization: Bearer <token>`
+ */
+function extractKey(req) {
+    const direct = req.headers["x-api-key"];
+    if (direct) return direct;
+
+    const authHeader = req.headers["authorization"] || "";
+    const match = authHeader.match(/^Bearer\s+(.+)$/i);
+    return match ? match[1] : "";
+}
+
 function auth(req, _res, next) {
-    const key = (req.headers["x-api-key"] || "").slice(0, MAX_KEY_LENGTH);
+    const key = extractKey(req).slice(0, MAX_KEY_LENGTH);
     const expected = config.apiKey.slice(0, MAX_KEY_LENGTH);
 
     if (!key) {
