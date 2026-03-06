@@ -111,14 +111,17 @@ class WhatsAppClient extends EventEmitter {
             this.#lastQrDataUrl = null;
             this.#reconnectAttempts = 0;
             this.#sock.ev.removeAllListeners();
-            await this.#sock.logout();
-            this.#sock.ws.close();
+            try { await this.#sock.logout(); } catch { /* ignora erros do logout */ }
+            try { this.#sock.ws.close(); } catch { /* ignora se já fechado */ }
             this.#sock = null;
-            logger.info("WhatsApp desconectado pelo usuário");
+            logger.info("WhatsApp desconectado pelo usuário — reiniciando para gerar novo QR...");
             dispatchWebhook("status", { status: "manual_disconnect" });
+            // Reinicia automaticamente para gerar um novo QR Code
+            setTimeout(() => this.init().catch(err => logger.error({ err }, "Erro ao reiniciar WhatsApp após disconnect")), 1500);
         } catch (err) {
             logger.error({ err: err.message }, "Erro ao desconectar WhatsApp");
             this.#sock = null;
+            setTimeout(() => this.init().catch(e => logger.error({ err: e }, "Erro ao reiniciar WhatsApp após erro de disconnect")), 1500);
             throw err;
         }
     }
@@ -180,8 +183,11 @@ class WhatsAppClient extends EventEmitter {
                 logger.info(`Reconectando em ${delay / 1000}s (tentativa ${this.#reconnectAttempts}/${config.maxReconnectAttempts})...`);
                 setTimeout(() => this.init(), delay);
             } else {
-                logger.error("Sessão deslogada. Apague a pasta auth/ e conecte de novo.");
+                // Sessão expirada/deslogada — reinicia para gerar novo QR
+                logger.warn("Sessão deslogada. Reiniciando para gerar novo QR Code...");
                 dispatchWebhook("status", { status: "logged_out" });
+                this.#reconnectAttempts = 0;
+                setTimeout(() => this.init().catch(err => logger.error({ err }, "Erro ao reiniciar após logout")), 2000);
             }
         }
     }
