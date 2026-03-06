@@ -1,4 +1,6 @@
 const EventEmitter = require("events");
+const fs = require("fs");
+const path = require("path");
 const {
     makeWASocket,
     useMultiFileAuthState,
@@ -114,13 +116,14 @@ class WhatsAppClient extends EventEmitter {
             try { await this.#sock.logout(); } catch { /* ignora erros do logout */ }
             try { this.#sock.ws.close(); } catch { /* ignora se já fechado */ }
             this.#sock = null;
-            logger.info("WhatsApp desconectado pelo usuário — reiniciando para gerar novo QR...");
+            logger.info("WhatsApp desconectado pelo usuário — limpando auth e reiniciando para novo QR...");
             dispatchWebhook("status", { status: "manual_disconnect" });
-            // Reinicia automaticamente para gerar um novo QR Code
+            this.#clearAuthFiles();
             setTimeout(() => this.init().catch(err => logger.error({ err }, "Erro ao reiniciar WhatsApp após disconnect")), 1500);
         } catch (err) {
             logger.error({ err: err.message }, "Erro ao desconectar WhatsApp");
             this.#sock = null;
+            this.#clearAuthFiles();
             setTimeout(() => this.init().catch(e => logger.error({ err: e }, "Erro ao reiniciar WhatsApp após erro de disconnect")), 1500);
             throw err;
         }
@@ -131,6 +134,21 @@ class WhatsAppClient extends EventEmitter {
         if (this.#sock) {
             try { this.#sock.ev.removeAllListeners(); this.#sock.ws.close(); } catch { /* noop */ }
             this.#sock = null;
+        }
+    }
+
+    /** Apaga todos os arquivos da pasta auth/ para forçar novo QR na próxima inicialização */
+    #clearAuthFiles() {
+        try {
+            const authDir = path.resolve(config.authPath);
+            if (fs.existsSync(authDir)) {
+                for (const file of fs.readdirSync(authDir)) {
+                    fs.rmSync(path.join(authDir, file), { force: true });
+                }
+                logger.info(`Arquivos de auth limpos em: ${authDir}`);
+            }
+        } catch (err) {
+            logger.error({ err: err.message }, "Erro ao limpar arquivos de auth");
         }
     }
 
@@ -183,10 +201,11 @@ class WhatsAppClient extends EventEmitter {
                 logger.info(`Reconectando em ${delay / 1000}s (tentativa ${this.#reconnectAttempts}/${config.maxReconnectAttempts})...`);
                 setTimeout(() => this.init(), delay);
             } else {
-                // Sessão expirada/deslogada — reinicia para gerar novo QR
-                logger.warn("Sessão deslogada. Reiniciando para gerar novo QR Code...");
+                // Sessão expirada/deslogada — limpa auth e reinicia para gerar novo QR
+                logger.warn("Sessão deslogada. Limpando auth e reiniciando para gerar novo QR Code...");
                 dispatchWebhook("status", { status: "logged_out" });
                 this.#reconnectAttempts = 0;
+                this.#clearAuthFiles();
                 setTimeout(() => this.init().catch(err => logger.error({ err }, "Erro ao reiniciar após logout")), 2000);
             }
         }
