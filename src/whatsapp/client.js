@@ -142,9 +142,9 @@ class WhatsAppClient extends EventEmitter {
         try {
             const authDir = path.resolve(config.authPath);
             if (fs.existsSync(authDir)) {
-                for (const file of fs.readdirSync(authDir)) {
-                    fs.rmSync(path.join(authDir, file), { force: true });
-                }
+                // Remove a pasta inteira e recria vazia
+                fs.rmSync(authDir, { recursive: true, force: true });
+                fs.mkdirSync(authDir, { recursive: true });
                 logger.info(`Arquivos de auth limpos em: ${authDir}`);
             }
         } catch (err) {

@@ -12,8 +12,8 @@ RUN npm ci --omit=dev
 COPY src/ ./src/
 COPY ecosystem.config.js ./
 
-# Roda como usuário não-root (segurança)
-USER node
+# Garante que o diretório de auth existe com permissões corretas
+RUN mkdir -p /data/auth
 
 # Porta padrão (deve bater com PORT env var ou 3333)
 EXPOSE 3333
